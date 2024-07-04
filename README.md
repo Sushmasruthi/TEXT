@@ -99,6 +99,7 @@ Ensure that the file paths are correct and that the files are available on your 
 Run the script to upload the image and extract the text. The extracted text will be printed to the console.
 
 input image : 
+
 ![image](https://github.com/SaiAkhileshP/Text-Extraction-from-Images-using-Gemini-API/assets/101054891/d5a149a9-784d-4ce8-9e30-ac1ec68a92f0)
 
 
