@@ -1,522 +1,540 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Teacher Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
 
-        body {
-            min-height: 100vh;
-            background: #1a1a1a;
-            color: white;
-        }
+      body {
+        min-height: 100vh;
+        background: #1a1a1a;
+        color: white;
+      }
 
+      .dashboard-container {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        min-height: 100vh;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        background: #8b5cf6;
+        color: white;
+        padding: 1.5rem;
+      }
+
+      .teacher-profile {
+        text-align: center;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 1.5rem;
+      }
+
+      .teacher-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+      }
+
+      .teacher-info h2 {
+        font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+        color: white;
+      }
+
+      .teacher-info p {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .nav-menu {
+        list-style: none;
+      }
+
+      .nav-item {
+        margin-bottom: 0.5rem;
+      }
+
+      .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1rem;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-link i {
+        margin-right: 0.8rem;
+        font-size: 1.1rem;
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        padding: 2rem;
+      }
+
+      .dashboard-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+        padding: 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .welcome-text h1 {
+        font-size: 1.8rem;
+        color: white;
+        margin-bottom: 0.5rem;
+      }
+
+      .welcome-text p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+      }
+
+      /* Cards Grid */
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .card {
+        background: rgba(139, 92, 246, 0.1);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+      }
+
+      .upload-icon {
+        background: #8b5cf6;
+        color: white;
+      }
+      .download-icon {
+        background: #8b5cf6;
+        color: white;
+      }
+      .analysis-icon {
+        background: #8b5cf6;
+        color: white;
+      }
+      .timetable-icon {
+        background: #8b5cf6;
+        color: white;
+      }
+
+      .card-title {
+        font-size: 1rem;
+        color: #8b5cf6;
+        font-weight: 500;
+      }
+
+      .upload-area {
+        border: 2px dashed #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .upload-area:hover {
+        border-color: #818cf8;
+        background: #f8fafc;
+      }
+
+      .upload-text {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+
+      /* Analysis Section */
+      .analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .stat-card {
+        background: rgba(139, 92, 246, 0.05);
+        padding: 1rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.3rem;
+      }
+
+      .stat-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        border: none;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn-primary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
         .dashboard-container {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            min-height: 100vh;
+          grid-template-columns: 1fr;
         }
 
-        /* Sidebar Styles */
         .sidebar {
-            background: #8B5CF6;
-            color: white;
-            padding: 1.5rem;
+          display: none;
         }
 
-        .teacher-profile {
-            text-align: center;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .teacher-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
-        }
-
-        .teacher-info h2 {
-            font-size: 1.1rem;
-            margin-bottom: 0.3rem;
-            color: white;
-        }
-
-        .teacher-info p {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .nav-menu {
-            list-style: none;
-        }
-
-        .nav-item {
-            margin-bottom: 0.5rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.8rem 1rem;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-link i {
-            margin-right: 0.8rem;
-            font-size: 1.1rem;
-        }
-
-        /* Main Content Styles */
-        .main-content {
-            padding: 2rem;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
-            padding: 2rem;
-            border-radius: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .welcome-text h1 {
-            font-size: 1.8rem;
-            color: white;
-            margin-bottom: 0.5rem;
-        }
-
-        .welcome-text p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
-        }
-
-        /* Cards Grid */
         .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+          grid-template-columns: 1fr;
         }
+      }
 
-        .card {
-            background: rgba(139, 92, 246, 0.1);
-            padding: 1.5rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-        }
+      /* Add these styles to your existing <style> section */
+      .action-buttons {
+        display: flex;
+        align-items: center;
+      }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
+      .activity-list,
+      .stats-list {
+        padding: 1rem 0;
+      }
 
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.2rem;
-        }
+      .activity-item,
+      .stat-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+        color: #64748b;
+      }
 
-        .upload-icon { background: #8B5CF6; color: white; }
-        .download-icon { background: #8B5CF6; color: white; }
-        .analysis-icon { background: #8B5CF6; color: white; }
-        .timetable-icon { background: #8B5CF6; color: white; }
+      .activity-item i {
+        margin-right: 0.8rem;
+        color: #818cf8;
+      }
 
-        .card-title {
-            font-size: 1rem;
-            color: #8B5CF6;
-            font-weight: 500;
-        }
+      .stat-item {
+        justify-content: space-between;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 0.8rem 0;
+      }
 
-        .upload-area {
-            border: 2px dashed #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+      .stat-item:last-child {
+        border-bottom: none;
+      }
 
-        .upload-area:hover {
-            border-color: #818cf8;
-            background: #f8fafc;
-        }
+      .stat-label {
+        color: #64748b;
+      }
 
-        .upload-text {
-            color: #64748b;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
+      .stat-value {
+        font-weight: 600;
+        color: #1e293b;
+      }
 
-        /* Analysis Section */
-        .analysis-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
+      /* Add these to your existing styles */
+      .analysis-filters {
+        display: flex;
+        gap: 1rem;
+        margin-left: auto;
+      }
 
-        .stat-card {
-            background: rgba(139, 92, 246, 0.05);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-        }
+      .analysis-filters select {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(30, 41, 59, 0.5);
+        color: white;
+        font-size: 0.9rem;
+      }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 0.3rem;
-        }
+      .class-list {
+        padding: 1rem 0;
+      }
 
-        .stat-label {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
+      .class-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+      }
 
-        /* Buttons */
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border-radius: 0.5rem;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+      .class-item:last-child {
+        border-bottom: none;
+      }
 
-        .btn-primary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
+      .class-name {
+        color: #8b5cf6;
+        font-weight: 500;
+      }
 
-        .btn-primary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
+      .student-count {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+      }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .dashboard-container {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                display: none;
-            }
-
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Add these styles to your existing <style> section */
-        .action-buttons {
-            display: flex;
-            align-items: center;
-        }
-
-        .activity-list, .stats-list {
-            padding: 1rem 0;
-        }
-
-        .activity-item, .stat-item {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0;
-            color: #64748b;
-        }
-
-        .activity-item i {
-            margin-right: 0.8rem;
-            color: #818cf8;
-        }
-
-        .stat-item {
-            justify-content: space-between;
-            border-bottom: 1px solid #f1f5f9;
-            padding: 0.8rem 0;
-        }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #64748b;
-        }
-
-        .stat-value {
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        /* Add these to your existing styles */
-        .analysis-filters {
-            display: flex;
-            gap: 1rem;
-            margin-left: auto;
-        }
-
-        .analysis-filters select {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            background: rgba(30, 41, 59, 0.5);
-            color: white;
-            font-size: 0.9rem;
-        }
-
-        .class-list {
-            padding: 1rem 0;
-        }
-
-        .class-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.8rem 0;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-        }
-
-        .class-item:last-child {
-            border-bottom: none;
-        }
-
-        .class-name {
-            color: #8B5CF6;
-            font-weight: 500;
-        }
-
-        .student-count {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="teacher-profile">
-                <div class="teacher-avatar">
-                    👨‍🏫
-                </div>
-                <div class="teacher-info">
-                    <h2>{{ teacher_name }}</h2>
-                    <p>{{ department }}</p>
-                </div>
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="teacher-profile">
+          <div class="teacher-avatar">👨‍🏫</div>
+          <div class="teacher-info">
+            <h2>{{ teacher_name }}</h2>
+            <p>{{ department }}</p>
+          </div>
+        </div>
+
+        <nav class="nav-menu">
+          <ul>
+            <li class="nav-item">
+              <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('upload_page') }}" class="nav-link">
+                <i class="fas fa-upload"></i>
+                <span>Upload Marks</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('view_marks') }}" class="nav-link">
+                <i class="fas fa-table"></i>
+                <span>View Marks</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('marks_analysis') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i>
+                <span>Marks Analysis</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="dashboard-header">
+          <div class="welcome-text">
+            <h1>Welcome back, {{ teacher_name }}!</h1>
+            <p>Here's what's happening with your classes today</p>
+          </div>
+          <div class="action-buttons">
+            <a href="/upload" class="btn btn-primary">
+              <i class="fas fa-folder-plus"></i> Upload Folders
+            </a>
+          </div>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="cards-grid">
+          <!-- Recent Activity Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon upload-icon">
+                <i class="fas fa-history"></i>
+              </div>
+              <h3 class="card-title">Recent Activity</h3>
             </div>
-
-            <nav class="nav-menu">
-                <ul>
-                    <li class="nav-item">
-                        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">
-                            <i class="fas fa-home"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('upload_page') }}" class="nav-link">
-                            <i class="fas fa-upload"></i>
-                            <span>Upload Marks</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('view_marks') }}" class="nav-link">
-                            <i class="fas fa-table"></i>
-                            <span>View Marks</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('marks_analysis') }}" class="nav-link">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Marks Analysis</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('logout') }}" class="nav-link">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="dashboard-header">
-                <div class="welcome-text">
-                    <h1>Welcome back, {{ teacher_name }}!</h1>
-                    <p>Here's what's happening with your classes today</p>
-                </div>
-                <div class="action-buttons">
-                    <a href="/upload" class="btn btn-primary">
-                        <i class="fas fa-folder-plus"></i> Upload Folders
-                    </a>
-                   
-                </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <i class="fas fa-upload"></i>
+                <span>Last upload: 2 hours ago</span>
+              </div>
+              <div class="activity-item">
+                <i class="fas fa-file-excel"></i>
+                <span>Last download: Yesterday</span>
+              </div>
             </div>
+          </div>
 
-            <!-- Cards Grid -->
-            <div class="cards-grid">
-                <!-- Recent Activity Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon upload-icon">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <h3 class="card-title">Recent Activity</h3>
-                    </div>
-                    <div class="activity-list">
-                        <div class="activity-item">
-                            <i class="fas fa-upload"></i>
-                            <span>Last upload: 2 hours ago</span>
-                        </div>
-                        <div class="activity-item">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Last download: Yesterday</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Statistics Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon download-icon">
-                            <i class="fas fa-chart-simple"></i>
-                        </div>
-                        <h3 class="card-title">Quick Stats</h3>
-                    </div>
-                    <div class="stats-list">
-                        <div class="stat-item">
-                            <span class="stat-label">Total Uploads</span>
-                            <span class="stat-value">24</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Processed Files</span>
-                            <span class="stat-value">120</span>
-                        </div>
-                    </div>
-                </div>
+          <!-- Statistics Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon download-icon">
+                <i class="fas fa-chart-simple"></i>
+              </div>
+              <h3 class="card-title">Quick Stats</h3>
             </div>
-
-            <!-- Analysis Section -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon analysis-icon">
-                        <i class="fas fa-chart-pie"></i>
-                    </div>
-                    <h3 class="card-title">Marks Analysis</h3>
-                </div>
-                <div class="analysis-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">85%</div>
-                        <div class="stat-label">Pass Percentage</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">95</div>
-                        <div class="stat-label">Highest Mark</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">45</div>
-                        <div class="stat-label">Lowest Mark</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">72.5</div>
-                        <div class="stat-label">Average Mark</div>
-                    </div>
-                </div>
+            <div class="stats-list">
+              <div class="stat-item">
+                <span class="stat-label">Total Uploads</span>
+                <span class="stat-value">24</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Processed Files</span>
+                <span class="stat-value">120</span>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Time Table Section -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon timetable-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <h3 class="card-title">Time Table</h3>
-                </div>
-                <!-- Add your time table content here -->
+        <!-- Analysis Section -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon analysis-icon">
+              <i class="fas fa-chart-pie"></i>
             </div>
-        </main>
+            <h3 class="card-title">Marks Analysis</h3>
+          </div>
+          <div class="analysis-grid">
+            <div class="stat-card">
+              <div class="stat-value">85%</div>
+              <div class="stat-label">Pass Percentage</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">95</div>
+              <div class="stat-label">Highest Mark</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">45</div>
+              <div class="stat-label">Lowest Mark</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">72.5</div>
+              <div class="stat-label">Average Mark</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Table Section -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon timetable-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h3 class="card-title">Time Table</h3>
+          </div>
+          <!-- Add your time table content here -->
+        </div>
+      </main>
     </div>
 
     <script>
-        // File Upload Functionality
-        const dropZone = document.getElementById('dropZone');
-        const fileUpload = document.getElementById('fileUpload');
+      // File Upload Functionality
+      const dropZone = document.getElementById("dropZone");
+      const fileUpload = document.getElementById("fileUpload");
 
-        dropZone.addEventListener('click', () => fileUpload.click());
+      dropZone.addEventListener("click", () => fileUpload.click());
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = '#818cf8';
-        });
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#818cf8";
+      });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.style.borderColor = '#e2e8f0';
-        });
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.style.borderColor = "#e2e8f0";
+      });
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = '#e2e8f0';
-            const files = e.dataTransfer.files;
-            handleFiles(files);
-        });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#e2e8f0";
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+      });
 
-        fileUpload.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
+      fileUpload.addEventListener("change", (e) => {
+        handleFiles(e.target.files);
+      });
 
-        function handleFiles(files) {
-            // Handle file upload logic here
-            console.log('Files to upload:', files);
-        }
+      function handleFiles(files) {
+        // Handle file upload logic here
+        console.log("Files to upload:", files);
+      }
 
-        // Excel Download Function
-        function downloadExcel() {
-            // Add your excel download logic here
-            console.log('Downloading excel file...');
-        }
+      // Excel Download Function
+      function downloadExcel() {
+        // Add your excel download logic here
+        console.log("Downloading excel file...");
+      }
     </script>
-</body>
-</html> 
+  </body>
+</html>
