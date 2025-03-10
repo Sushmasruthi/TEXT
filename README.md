@@ -1,126 +1,114 @@
-# Text Extraction from Images using Gemini API
+# Student Performance Analysis System
 
-## Introduction
+A comprehensive web-based application for analyzing and managing student academic performance through automated mark sheet processing and analysis.
 
-This document outlines the process for extracting text from images using the Gemini API with the Google AI Python SDK. The steps include setting up the environment, configuring the Gemini API, uploading images, and generating the text content from the images.
+## 🌟 Features
 
-## Prerequisites
+- **User Authentication**
+  - Separate login portals for students and teachers
+  - Secure registration and login system
 
-1. Python 3.6 or later installed on your system.
-2. A Google AI account with access to the Gemini API.
-3. Internet connection to download the required Python packages and interact with the API.
+- **Mark Sheet Processing**
+  - Automated extraction of marks from uploaded images using OCR
+  - Support for multiple image formats (PNG, JPG, JPEG, GIF)
+  - Bulk upload capability for multiple mark sheets
 
-## Steps
+- **Performance Analysis**
+  - Detailed statistical analysis of student performance
+  - Visual representations of marks distribution
+  - Individual and class-wide performance tracking
+  - Subject-wise analysis
+  - Academic year-based tracking
 
-### 1. Install Google AI Python SDK
+- **Data Management**
+  - Excel export functionality for mark sheets
+  - Secure storage of student records
+  - Easy access to historical performance data
 
-Install the Google AI Python SDK using pip:
+## 🛠️ Technology Stack
 
-```bash
-$ pip install google-generativeai
-```
+- **Backend**: Flask (Python)
+- **Frontend**: HTML, CSS, JavaScript
+- **Database**: MySQL
+- **Image Processing**: OpenCV, Tesseract OCR
+- **Data Analysis**: Pandas, NumPy
+- **AI/ML**: Google Generative AI
 
-For more information, refer to the [getting started guide](https://ai.google.dev/gemini-api/docs/get-started/python).
+## 📋 Prerequisites
 
-### 2. Configure Gemini API
+- Python 3.x
+- MySQL Server
+- Tesseract OCR engine
+- Virtual environment (recommended)
 
-First, import the required modules and configure the Gemini API with your API key:
+## 🚀 Installation
 
-```python
-import os
-import google.generativeai as genai
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd Student-performance-analysis
+   ```
 
-api = '<Gemini_Api_Key>'
-genai.configure(api_key=api)
-```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-Replace `<Gemini_Api_Key>` with your actual Gemini API key.
+3. Install required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 3. Upload Images to Gemini
+4. Set up environment variables in `.env` file:
+   ```
+   DB_HOST=your_host
+   DB_USER=your_user
+   DB_PASSWORD=your_password
+   DB_NAME=your_database
+   ```
 
-Create a function to upload images to the Gemini API:
+5. Initialize the database:
+   ```bash
+   python database.py
+   ```
 
-```python
-def upload_to_gemini(path, mime_type=None):
-    """Uploads the given file to Gemini.
+## 🎯 Usage
 
-    See https://ai.google.dev/gemini-api/docs/prompting_with_media
-    """
-    file = genai.upload_file(path, mime_type=mime_type)
-    print(f"Uploaded file '{file.display_name}' as: {file.uri}")
-    return file
-```
+1. Start the Flask application:
+   ```bash
+   python app.py
+   ```
 
-### 4. Configure the Generative Model
+2. Access the application through your web browser at `http://localhost:5000`
 
-Configure the generative model with appropriate settings:
+3. Register as either a teacher or student
 
-```python
-generation_config = {
-    "temperature": 0.9,
-    "top_p": 0.95,
-    "top_k": 32,
-    "max_output_tokens": 1024,
-    "response_mime_type": "text/plain",
-}
+4. For teachers:
+   - Upload mark sheets through the dashboard
+   - View and analyze student performance
+   - Generate reports and download data
 
-model = genai.GenerativeModel(
-    model_name="gemini-1.0-pro-vision-latest",
-    generation_config=generation_config,
-    # safety_settings = Adjust safety settings
-    # See https://ai.google.dev/gemini-api/docs/safety-settings
-)
-```
+5. For students:
+   - View personal performance metrics
+   - Track progress across subjects
+   - Access historical performance data
 
-### 5. Upload and Process Images
+## 📁 Project Structure
 
-Upload the image file and process it to extract text:
+- `app.py`: Main application file with route definitions
+- `database.py`: Database models and operations
+- `image_to_text.py`: OCR functionality for mark sheet processing
+- `text_to_json.py`: Text processing and JSON conversion
+- `routes.py`: Additional route handlers
+- `templates/`: HTML templates
+- `static/`: Static files (CSS, JS, images)
+- `uploads/`: Temporary storage for uploaded files
 
-```python
-# TODO Make these files available on the local file system
-# You may need to update the file paths
-files = [
-    upload_to_gemini("<image file location>", mime_type="image/png"),
-]
+## 🔒 Security Features
 
-response = model.generate_content([
-    files[0],
-    "extract the text from the image",
-    "Image: extract the text from the image",
-])
+- Password hashing for user authentication
+- Session management
+- Secure file upload handling
+- Input validation and sanitization
 
-print(response.text)
-```
-
-Ensure that the file paths are correct and that the files are available on your local file system.
-
-### 6. Run the Script
-
-Run the script to upload the image and extract the text. The extracted text will be printed to the console.
-
-input image1 : 
-
-![image](https://github.com/SaiAkhileshP/Text-Extraction-from-Images-using-Gemini-API/assets/101054891/d5a149a9-784d-4ce8-9e30-ac1ec68a92f0)
-
-
-Output Text : 
-
-![image](https://github.com/SaiAkhileshP/Text-Extraction-from-Images-using-Gemini-API/assets/101054891/08fd2398-3107-4450-9027-9e52924ac2c3)
-
-
-input image2 :
-
-![image](https://github.com/SaiAkhileshP/Text-Extraction-from-Images-using-Gemini-API/assets/101054891/58435ccb-b3c7-4c37-9a37-e938ebf9f68c)
-
-
-Output Text :
-
-![image](https://github.com/SaiAkhileshP/Text-Extraction-from-Images-using-Gemini-API/assets/101054891/65f1fdfa-12a8-44cd-90de-0952bb3a0f6b)
-
-
-
-## Conclusion
-
-This document provides a step-by-step guide to extracting text from images using the Gemini API and the Google AI Python SDK. By following these steps, you can efficiently process images and extract their textual content for further analysis or use.
-
-For more detailed information, refer to the [Gemini API documentation](https://ai.google.dev/gemini-api/docs).
