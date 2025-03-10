@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f1f5f9;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: #1e293b;
+            color: white;
+            padding: 1.5rem;
+        }
+
+        .teacher-profile {
+            text-align: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 1.5rem;
+        }
+
+        .teacher-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #818cf8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+        }
+
+        .teacher-info h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .teacher-info p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: #334155;
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 0.8rem;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-text h1 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 0.3rem;
+        }
+
+        .welcome-text p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .upload-icon { background: #818cf8; color: white; }
+        .download-icon { background: #22c55e; color: white; }
+        .analysis-icon { background: #f59e0b; color: white; }
+        .timetable-icon { background: #ef4444; color: white; }
+
+        .card-title {
+            font-size: 1rem;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .upload-area {
+            border: 2px dashed #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #818cf8;
+            background: #f8fafc;
+        }
+
+        .upload-text {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Analysis Section */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #818cf8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #6366f1;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="teacher-profile">
+                <div class="teacher-avatar">
+                    👨‍🏫
+                </div>
+                <div class="teacher-info">
+                    <h2>{{ teacher_name }}</h2>
+                    <p>{{ department }}</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="#dashboard" class="nav-link active">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#marks" class="nav-link">
+                            <i class="fas fa-chart-bar"></i> Marks Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#timetable" class="nav-link">
+                            <i class="fas fa-calendar"></i> Time Table
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/logout" class="nav-link">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="dashboard-header">
+                <div class="welcome-text">
+                    <h1>Welcome back, {{ teacher_name }}!</h1>
+                    <p>Here's what's happening with your classes today</p>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="cards-grid">
+                <!-- Upload Files Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon upload-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <h3 class="card-title">Bulk Upload Files</h3>
+                    </div>
+                    <div class="upload-area" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt fa-2x" style="color: #818cf8;"></i>
+                        <p class="upload-text">Drag & drop files here or click to browse</p>
+                        <input type="file" id="fileUpload" multiple style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Download Excel Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon download-icon">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <h3 class="card-title">Download Reports</h3>
+                    </div>
+                    <button class="btn btn-primary" onclick="downloadExcel()">
+                        <i class="fas fa-download"></i> Download Excel Sheet
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon analysis-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 class="card-title">Marks Analysis</h3>
+                </div>
+                <div class="analysis-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">85%</div>
+                        <div class="stat-label">Pass Percentage</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">95</div>
+                        <div class="stat-label">Highest Mark</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">45</div>
+                        <div class="stat-label">Lowest Mark</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">72.5</div>
+                        <div class="stat-label">Average Mark</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Table Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon timetable-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3 class="card-title">Time Table</h3>
+                </div>
+                <!-- Add your time table content here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // File Upload Functionality
+        const dropZone = document.getElementById('dropZone');
+        const fileUpload = document.getElementById('fileUpload');
+
+        dropZone.addEventListener('click', () => fileUpload.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#818cf8';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#e2e8f0';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#e2e8f0';
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileUpload.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            // Handle file upload logic here
+            console.log('Files to upload:', files);
+        }
+
+        // Excel Download Function
+        function downloadExcel() {
+            // Add your excel download logic here
+            console.log('Downloading excel file...');
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #1a1a1a;
+            display: flex;
+            color: white;
+        }
+
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #8B5CF6;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        .logo span {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item i {
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-banner h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-banner p {
+            opacity: 0.8;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #8B5CF6;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .courses-section {
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .courses-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #8B5CF6;
+        }
+
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .course-card {
+            background: rgba(139, 92, 246, 0.05);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .course-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: #8B5CF6;
+        }
+
+        .course-card p {
+            font-size: 0.9rem;
+            color: #9CA3AF;
+            margin-bottom: 1rem;
+        }
+
+        .logout-btn {
+            margin-top: auto;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="logo">
+                <i class="ri-graduation-cap-fill"></i>
+                <span>Student Portal</span>
+            </div>
+            <div class="menu">
+                <a href="#" class="menu-item active">
+                    <i class="ri-dashboard-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-book-open-line"></i>
+                    <span>Courses</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-calendar-line"></i>
+                    <span>Schedule</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-file-list-line"></i>
+                    <span>Assignments</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-bar-chart-line"></i>
+                    <span>Grades</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-settings-line"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+
+        <div class="main-content">
+            <div class="welcome-banner">
+                <h1>Welcome, {{ name }}!</h1>
+                <p>Here's your academic overview</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Enrolled Courses</h3>
+                    <div class="value">{{ courses|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Assignments Due</h3>
+                    <div class="value">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Grade</h3>
+                    <div class="value">-</div>
+                </div>
+            </div>
+
+            <div class="courses-section">
+                <h2>My Courses</h2>
+                <div class="courses-grid">
+                    {% if courses %}
+                        {% for course in courses %}
+                        <div class="course-card">
+                            <h3>{{ course.course_name }}</h3>
+                            <p>{{ course.course_code }}</p>
+                            <p>Department: {{ course.department }}</p>
+                            {% if course.description %}
+                            <p>{{ course.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No courses enrolled yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
