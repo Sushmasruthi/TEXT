@@ -51,3 +51,5 @@ docs/_build/
 
 .env
 .venv
+database
+testing_images
