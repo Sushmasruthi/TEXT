@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Marks</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        .filter-controls {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-controls select {
+            background: rgba(30, 41, 59, 0.8);
+            color: white;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            min-width: 150px;
+        }
+
+        .view-btn {
+            background: #8B5CF6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .marks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 0.8rem;
+            overflow: hidden;
+        }
+
+        .marks-table th, .marks-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .marks-table th {
+            background: #8B5CF6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Include your sidebar here -->
+        <main class="main-content">
+            <div class="filter-controls">
+                <select id="yearFilter">
+                    <option value="">Select Year</option>
+                    <option value="FY">First Year</option>
+                    <option value="SY">Second Year</option>
+                    <option value="TY">Third Year</option>
+                    <option value="Final">Final Year</option>
+                </select>
+                <select id="subjectFilter">
+                    <option value="">Select Subject</option>
+                    <option value="java">Java</option>
+                    <option value="python">Python</option>
+                </select>
+                <select id="examTypeFilter">
+                    <option value="">Select Exam</option>
+                    <option value="MID1">Mid Term 1</option>
+                    <option value="MID2">Mid Term 2</option>
+                </select>
+                <button class="view-btn" onclick="viewMarks()">View Marks</button>
+            </div>
+
+            <div id="marksTableContainer"></div>
+        </main>
+    </div>
+
+    <script>
+        function viewMarks() {
+            const year = document.getElementById('yearFilter').value;
+            const subject = document.getElementById('subjectFilter').value;
+            const examType = document.getElementById('examTypeFilter').value;
+
+            if (!year || !subject || !examType) {
+                alert('Please select all filters');
+                return;
+            }
+
+            fetch(`/api/view-marks?year=${year}&subject=${subject}&examType=${examType}`)
+                .then(response => response.json())
+                .then(data => displayMarks(data))
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching marks data');
+                });
+        }
+
+        function displayMarks(data) {
+            const container = document.getElementById('marksTableContainer');
+            let html = `
+                <table class="marks-table">
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Subject</th>
+                            ${Array.from({length: 6}, (_, i) => `
+                                <th colspan="4">Q${i + 1}</th>
+                            `).join('')}
+                            <th>Total</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            ${Array.from({length: 6}, () => `
+                                <th>a</th>
+                                <th>b</th>
+                                <th>c</th>
+                                <th>d</th>
+                            `).join('')}
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(entry => {
+                html += `
+                    <tr>
+                        <td>${entry.roll_number}</td>
+                        <td>${entry.subject}</td>
+                `;
+
+                // Add question marks
+                for (let q = 1; q <= 6; q++) {
+                    const qData = entry.questions[`Q${q}`] || {a: 0, b: 0, c: 0, d: 0};
+                    html += `
+                        <td>${qData.a}</td>
+                        <td>${qData.b}</td>
+                        <td>${qData.c}</td>
+                        <td>${qData.d}</td>
+                    `;
+                }
+
+                html += `
+                        <td>${entry.total_marks}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html> 

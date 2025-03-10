@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marks Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Reuse sidebar styles from teacher_dashboard.html */
+        .sidebar {
+            background: #8B5CF6;
+            color: white;
+            padding: 1.5rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+            background: #1e293b;
+        }
+
+        .analysis-header {
+            margin-bottom: 2rem;
+        }
+
+        .analysis-header h1 {
+            font-size: 1.5rem;
+            color: #8B5CF6;
+            margin-bottom: 0.5rem;
+        }
+
+        .analysis-header p {
+            color: #e2e8f0;
+        }
+
+        .filter-controls {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-controls select {
+            background: rgba(30, 41, 59, 0.8);
+            color: white;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            min-width: 150px;
+        }
+
+        .analyze-btn {
+            background: #8B5CF6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn:hover {
+            background: #7c3aed;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            color: #8B5CF6;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .list-container {
+            height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            color: #e2e8f0;
+        }
+
+        .student-item:last-child {
+            border-bottom: none;
+        }
+
+        .student-rank {
+            color: #8B5CF6;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        .student-marks {
+            color: #22c55e;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+            }
+
+            .filter-controls select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Reuse sidebar from teacher_dashboard.html -->
+        <aside class="sidebar">
+            <!-- Copy the entire sidebar content from teacher_dashboard.html -->
+        </aside>
+
+        <main class="main-content">
+            <div class="analysis-header">
+                <h1>Marks Analysis</h1>
+                <div class="filter-controls">
+                    <select id="yearFilter">
+                        <option value="">Select Year</option>
+                        <option value="1">First Year</option>
+                        <option value="2">Second Year</option>
+                        <option value="3">Third Year</option>
+                        <option value="4">Fourth Year</option>
+                    </select>
+
+                    <select id="subjectFilter">
+                        <option value="">Select Subject</option>
+                        <option value="java">Java</option>
+                        <option value="python">Python</option>
+                    </select>
+
+                    <select id="examTypeFilter">
+                        <option value="">Select Exam</option>
+                        <option value="MID1">Mid Term 1</option>
+                        <option value="MID2">Mid Term 2</option>
+                    </select>
+
+                    <button class="analyze-btn" onclick="updateAnalysis()">
+                        <i class="fas fa-chart-line"></i> Analyze
+                    </button>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Pass/Fail Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="passFailChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Score Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="scoreDistChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Top Performers</h3>
+                    <div class="list-container" id="toppersList">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Need Improvement</h3>
+                    <div class="list-container" id="dullersList">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">Subject Statistics</h3>
+                    <div class="list-container" id="subjectStatsList">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let charts = {};
+
+        function initializeCharts() {
+            // Initialize Pass/Fail Chart
+            charts.passFailChart = new Chart(document.getElementById('passFailChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pass', 'Fail'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Initialize Score Distribution Chart
+            charts.scoreDistChart = new Chart(document.getElementById('scoreDistChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['0-8', '9-16', '17-24', '25-32', '33-40'],
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: '#818cf8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e2e8f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAnalysis() {
+            const year = document.getElementById('yearFilter').value;
+            const subject = document.getElementById('subjectFilter').value;
+            const examType = document.getElementById('examTypeFilter').value;
+
+            if (!year || !subject || !examType) {
+                alert('Please select all filters');
+                return;
+            }
+
+            fetch(`/api/analysis?year=${year}&subject=${subject}&examType=${examType}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        updateCharts(data);
+                        updateLists(data);
+                    } else {
+                        alert('No data found for the selected criteria');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching analysis data');
+                });
+        }
+
+        function updateCharts(data) {
+            // Update Pass/Fail Chart
+            charts.passFailChart.data.datasets[0].data = [
+                data.passCount,
+                data.totalStudents - data.passCount
+            ];
+            charts.passFailChart.update();
+
+            // Update Score Distribution Chart
+            charts.scoreDistChart.data.datasets[0].data = data.scoreDistribution;
+            charts.scoreDistChart.data.labels = ['0-8', '9-16', '17-24', '25-32', '33-40'];
+            charts.scoreDistChart.update();
+        }
+
+        function updateLists(data) {
+            // Update Toppers List
+            const toppersHtml = data.toppers.map((student, index) => `
+                <div class="student-item">
+                    <span><span class="student-rank">#${index + 1}</span> ${student.rollNumber}</span>
+                    <span class="student-marks">${student.marks}%</span>
+                </div>
+            `).join('');
+            document.getElementById('toppersList').innerHTML = toppersHtml;
+
+            // Update Dullers List
+            const dullersHtml = data.needImprovement.map((student, index) => `
+                <div class="student-item">
+                    <span><span class="student-rank">#${index + 1}</span> ${student.rollNumber}</span>
+                    <span class="student-marks">${student.marks}%</span>
+                </div>
+            `).join('');
+            document.getElementById('dullersList').innerHTML = dullersHtml;
+
+            // Update subject statistics
+            const subjectStatsHtml = data.subjectStats.map(stat => `
+                <div class="student-item">
+                    <span class="subject-name">${stat.subject}</span>
+                    <div class="stat-details">
+                        <span>Highest: ${stat.highest}</span>
+                        <span>Lowest: ${stat.lowest}</span>
+                        <span>Average: ${stat.average}</span>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('subjectStatsList').innerHTML = subjectStatsHtml;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            document.querySelector('.analyze-btn').addEventListener('click', updateAnalysis);
+        });
+    </script>
+</body>
+</html>

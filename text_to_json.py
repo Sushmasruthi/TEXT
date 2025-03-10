@@ -5,6 +5,7 @@ import time
 from dotenv import load_dotenv  
 import os
 from typing import Dict, Optional
+from PIL import Image
 # Load environment variables
 load_dotenv()
 
@@ -13,9 +14,12 @@ load_dotenv()
 API_KEY = os.getenv('API_KEY')
 genai.configure(api_key=API_KEY)
 
-def process_text_with_image(extracted_text, image_part):
+def process_text_with_image(extracted_text, image_path):
     """Process text with image context for more accurate extraction."""
     try:
+        # Load the image
+        image_part = Image.open(image_path)
+        
         generation_config = {
             "temperature": 1,
             "top_p": 1.0,
@@ -83,13 +87,22 @@ def process_text_with_image(extracted_text, image_part):
             Note: Use both text and image inputs for complete context, but prioritize text data when discrepancies exist.
         """
 
-        response = model.generate_content([prompt, extracted_text])
+        response = model.generate_content([prompt, extracted_text, image_part])
 
-        response = re.search(r"```json\n(.*?)\n```", response.text, re.DOTALL)
-        if response:
-            print(response.group(1))
-            return json.loads(response.group(1))
-        return None
+        response_text = response.text
+        json_match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
+        
+        if json_match:
+            json_str = json_match.group(1)
+            print(json_str)  # Debug print
+            return json.loads(json_str)
+        
+        # If no JSON block found, try to parse the entire response
+        try:
+            return json.loads(response_text)
+        except:
+            print("Could not parse JSON from response")
+            return None
 
     except Exception as e:
         print(f"Error in text-image processing: {e}")

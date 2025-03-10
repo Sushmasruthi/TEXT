@@ -12,11 +12,12 @@ load_dotenv()
 API_KEY = os.getenv('API_KEY')
 genai.configure(api_key=API_KEY)
 
-def extract_text_from_image(image_part):
+def extract_text_from_image(image_path):
     """Extract text from image using Gemini API."""
     try:
+        # Load the image
+        image_part = Image.open(image_path)
         
-
         # Configure Gemini
         generation_config = {
             "temperature": 0,
@@ -92,7 +93,7 @@ You are an advanced Image Analysis and Text Extraction Assistant. Your primary f
 ### OUTPUT REQUIREMENTS:
 1. **Content Organization:**
    - Present extracted text in a clear, structured manner.
-   - Maintain the original document’s formatting.
+   - Maintain the original document's formatting.
    - Indicate any unclear, ambiguous, or partially visible text.
    - Preserve spatial relationships between elements.
 
@@ -113,7 +114,7 @@ You are an advanced Image Analysis and Text Extraction Assistant. Your primary f
    - **Correctly capture and associate the marks awarded with each question and subquestion.**
 
 5. **Table Extraction and Comparison:**
-   - **Extract the table structure exactly as it appears, including header rows, subquestion rows, and rows for “CO Number” and “Marks Awarded”.**
+   - **Extract the table structure exactly as it appears, including header rows, subquestion rows, and rows for "CO Number" and "Marks Awarded".**
    - **Compare the extracted table with the original layout to ensure correct alignment of all columns and rows.**
    - **Confirm that the table concludes precisely with the row containing the marks awarded.**
 
@@ -121,7 +122,7 @@ You are an advanced Image Analysis and Text Extraction Assistant. Your primary f
    - **Calculate the sum of the individual marks extracted for each question (and subquestion, if applicable).**
    - **Verify that the calculated sum matches the provided total.**
    - **If there is a discrepancy (for example, if the extracted details indicate a total of 30 while another part of the table shows a different value), clearly flag this inconsistency.**
-   - **In the provided example, the student’s verification note states “marks are not matching with the total, that should be 30” – ensure that such comments and the corrected total (30) are highlighted.**
+   - **In the provided example, the student's verification note states "marks are not matching with the total, that should be 30" – ensure that such comments and the corrected total (30) are highlighted.**
 
 ---
 
@@ -148,7 +149,7 @@ You are an advanced Image Analysis and Text Extraction Assistant. Your primary f
 1. Start with the document type/purpose.
 2. List main structural elements.
 3. Detail content section by section.
-4. Note any special elements, markings, or verification comments (e.g., “Student sign after marks verification”).
+4. Note any special elements, markings, or verification comments (e.g., "Student sign after marks verification").
 5. Include relevant metadata.
 6. Highlight key information, such as discrepancies in marks.
 7. Maintain original formatting.

@@ -14,28 +14,28 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e293b; /* Dark background similar to dashboard */
             padding: 20px;
-            color: #333;
+            color: #e2e8f0;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(30, 41, 59, 0.8); /* Darker background with transparency */
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
         }
 
         h1 {
-            color: #2c3e50;
+            color: #8B5CF6; /* Purple color from dashboard */
             text-align: center;
             margin-bottom: 30px;
             font-size: 2.5em;
             font-weight: 600;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .button-group {
@@ -54,43 +54,45 @@
             font-size: 1rem;
             transition: all 0.3s ease;
             text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
+            background: #8B5CF6; /* Purple color from dashboard */
             color: white;
         }
 
         .btn-danger {
-            background: linear-gradient(145deg, #c84739, #c0392b);
+            background: #ef4444; /* Red color */
             color: white;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         .table-container {
             overflow-x: auto;
             margin: 20px 0;
             border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
         }
 
         .json-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            background: white;
+            background: rgba(30, 41, 59, 0.5);
             font-size: 0.9rem;
+            color: #e2e8f0;
         }
 
         .json-table th {
-            background: linear-gradient(145deg, #3498db, #2980b9);
+            background: #8B5CF6; /* Purple color from dashboard */
             color: white;
             font-weight: 600;
             text-transform: uppercase;
@@ -106,7 +108,7 @@
 
         /* Question Headers */
         .json-table th[colspan="4"] {
-            background: linear-gradient(145deg, #3498db, #2980b9);
+            background: #8B5CF6; /* Purple color from dashboard */
         }
 
         /* Base borders - removing all borders */
@@ -117,17 +119,16 @@
 
         /* Question Labels Row styling */
         .json-table tr:nth-child(2) th {
-            font-size: 10em;
             padding: 10px;
-            background: #f0f0f0;
-            color: #000000;
+            background: #4c1d95; /* Darker purple */
+            color: white;
         }
 
         /* Total column styling */
         .json-table td:last-child,
         .json-table th:last-child {
-            background-color: #e6f3ff;  /* Light blue background */
-            color: #00008B;  /* Dark blue text */
+            background-color: #7c3aed; /* Slightly darker purple */
+            color: white;
             font-size: 1.1em;
             font-weight: bold;
         }
@@ -135,25 +136,25 @@
         .json-table td {
             padding: 12px 10px;
             text-align: center;
-            border: 1px solid #e0e0e0;
-            color: #2c3e50;
+            border: 1px solid #334155;
+            color: #e2e8f0;
         }
 
         /* Question Separators - adding borders with color gradient */
         .json-table td:nth-child(4n+1):not(:first-child) {
-            border-right: 3px solid #3498db;  /* Blue */
+            border-right: 3px solid #8B5CF6; /* Purple color */
         }
 
         .json-table td:nth-child(4n+2) {
-            border-right: 2px solid #929693;  /* Green */
+            border-right: 2px solid #334155;
         }
 
         .json-table td:nth-child(4n+3) {
-            border-right: 2px solid #929693;  /* Red */
+            border-right: 2px solid #334155;
         }
 
         .json-table td:nth-child(4n) {
-            border-right: 2px solid #929693;  /* Orange */
+            border-right: 2px solid #334155;
         }
 
         /* Question Labels (a,b,c,d) */
@@ -164,17 +165,17 @@
         .json-table tr:nth-child(2) th {
             font-size: 0.8em;
             padding: 10px;
-            background: linear-gradient(145deg, #3498db, #2980b9);
+            background: #6d28d9; /* Slightly darker purple */
         }
 
         /* Even rows - update total column background */
         .json-table tbody tr:nth-child(even) td:last-child {
-            background-color: #d9ecff;  /* Slightly darker light blue for even rows */
+            background-color: #6d28d9; /* Slightly darker purple */
         }
 
         /* Hover effects - update total column hover */
         .json-table tbody tr:hover td:last-child {
-            background-color: #c5e1ff;  /* Even darker light blue on hover */
+            background-color: #5b21b6; /* Even darker purple on hover */
             transform: scale(1.05);
             transition: all 0.2s ease;
         }
@@ -185,14 +186,14 @@
         }
 
         .json-table tbody tr:hover td:not(:last-child) {
-            background-color: #f5f9fe;
+            background-color: #334155;
         }
 
         /* Roll Number Column */
         .json-table td:first-child {
             font-weight: 600;
-            background-color: #f8f9fa;
-            border-right: 2px solid #3498db;
+            background-color: #334155;
+            border-right: 2px solid #8B5CF6;
         }
 
         /* Question group hover effect */
@@ -200,7 +201,7 @@
         .json-table tbody tr:hover td:nth-child(4n+2):not(:last-child),
         .json-table tbody tr:hover td:nth-child(4n+3):not(:last-child),
         .json-table tbody tr:hover td:nth-child(4n+4):not(:last-child) {
-            background-color: #f0f7ff;
+            background-color: #334155;
         }
 
         .status-message {
@@ -214,15 +215,15 @@
         }
 
         .success {
-            background: linear-gradient(145deg, #d4edda, #c3e6cb);
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #10b981; /* Green */
+            color: white;
+            border: 1px solid #059669;
         }
 
         .error {
-            background: linear-gradient(145deg, #f8d7da, #f5c6cb);
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #ef4444; /* Red */
+            color: white;
+            border: 1px solid #dc2626;
         }
 
         @keyframes slideIn {
@@ -274,7 +275,6 @@
 
         <div class="button-group">
             <button onclick="deleteLastEntry()" class="btn btn-danger">Delete Recent Entry</button>
-            <a href="/" class="btn btn-primary">Upload More Images</a>
             <button onclick="downloadExcel()" class="btn btn-primary">Download Excel</button>
         </div>
 

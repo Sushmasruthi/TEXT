@@ -1,6 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from database import init_db, register_student, register_teacher, verify_student, verify_teacher
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
+from database import init_db, register_student, register_teacher, verify_student, verify_teacher, Database, ResultsDatabase
 from functools import wraps
+import os
+from werkzeug.utils import secure_filename
+from image_to_text import extract_text_from_image
+from text_to_json import process_text_with_image
+import pandas as pd
+import json
+from PIL import Image
+from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Change this to a secure secret key
@@ -8,12 +17,27 @@ app.secret_key = 'your_secret_key_here'  # Change this to a secure secret key
 # Initialize the database
 init_db()
 
+db = Database()
+db_results = ResultsDatabase()
+
+# Add these configurations
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Create uploads directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Helper function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Login required decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please login to access this page.', 'error')
+        if 'user_type' not in session:
+            flash('Please log in first', 'error')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -201,6 +225,415 @@ def logout():
     session.clear()
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
+
+@app.route('/upload')
+@login_required
+def upload_page():
+    if session.get('user_type') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+    return render_template('upload.html')
+
+@app.route('/api/analysis')
+@login_required
+def get_analysis():
+    year = request.args.get('year')
+    subject = request.args.get('subject')
+    exam_type = request.args.get('examType')
+    
+    with db_results.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get basic statistics with updated pass mark (10)
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_students,
+                COUNT(CASE WHEN total_marks >= 10 THEN 1 END) as passed_students,
+                AVG(total_marks) as avg_marks,
+                MAX(total_marks) as highest_marks,
+                MIN(total_marks) as lowest_marks,
+                COUNT(CASE WHEN total_marks BETWEEN 0 AND 8 THEN 1 END) as range1,
+                COUNT(CASE WHEN total_marks BETWEEN 9 AND 16 THEN 1 END) as range2,
+                COUNT(CASE WHEN total_marks BETWEEN 17 AND 24 THEN 1 END) as range3,
+                COUNT(CASE WHEN total_marks BETWEEN 25 AND 32 THEN 1 END) as range4,
+                COUNT(CASE WHEN total_marks BETWEEN 33 AND 40 THEN 1 END) as range5
+            FROM students_results
+            WHERE class_year = ? AND subject = ? AND exam_type = ?
+        """, (year, subject, exam_type))
+        
+        stats = cursor.fetchone()
+        
+        # Get top performers (based on 20 as average)
+        cursor.execute("""
+            SELECT roll_number, total_marks
+            FROM students_results
+            WHERE class_year = ? AND subject = ? AND exam_type = ? AND total_marks > 20
+            ORDER BY total_marks DESC
+            LIMIT 5
+        """, (year, subject, exam_type))
+        
+        toppers = [{'rollNumber': row[0], 'marks': row[1]} 
+                  for row in cursor.fetchall()]
+        
+        # Get students needing improvement (below average)
+        cursor.execute("""
+            SELECT roll_number, total_marks
+            FROM students_results
+            WHERE class_year = ? AND subject = ? AND exam_type = ? AND total_marks < 20
+            ORDER BY total_marks ASC
+            LIMIT 5
+        """, (year, subject, exam_type))
+        
+        need_improvement = [{'rollNumber': row[0], 'marks': row[1]} 
+                          for row in cursor.fetchall()]
+        
+        # Get subject-wise statistics
+        cursor.execute("""
+            SELECT 
+                subject,
+                MAX(total_marks) as highest_mark,
+                MIN(total_marks) as lowest_mark,
+                AVG(total_marks) as avg_marks
+            FROM students_results
+            WHERE class_year = ? AND exam_type = ?
+            GROUP BY subject
+        """, (year, exam_type))
+        
+        subject_stats = cursor.fetchall()
+        
+        return jsonify({
+            'totalStudents': stats[0],
+            'passCount': stats[1],
+            'averageMarks': round(stats[2], 2) if stats[2] else 0,
+            'highestMarks': stats[3],
+            'lowestMarks': stats[4],
+            'scoreDistribution': list(stats[5:10]),
+            'toppers': toppers,
+            'needImprovement': need_improvement,
+            'subjectStats': [{
+                'subject': row[0],
+                'highest': row[1],
+                'lowest': row[2],
+                'average': round(row[3], 2)
+            } for row in subject_stats]
+        })
+
+def process_files(files):
+    results = []
+    for file in files:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            try:
+                # Extract text from image using the existing function
+                extracted_data = extract_text_from_image(filepath)
+                
+                if extracted_data and isinstance(extracted_data, dict):  # Check if it's a dictionary
+                    results.append(extracted_data)
+                else:
+                    print(f"Invalid data format from {filename}")
+                
+                # Clean up temporary file
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                
+            except Exception as e:
+                print(f"Error processing {filename}: {str(e)}")
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+    
+    return results
+
+@app.route('/upload-folder', methods=['POST'])
+@login_required
+def upload_folder():
+    if 'files[]' not in request.files:
+        flash('No files uploaded', 'error')
+        return redirect(url_for('upload_page'))
+
+    files = request.files.getlist('files[]')
+    if not files or files[0].filename == '':
+        flash('No selected files', 'error')
+        return redirect(url_for('upload_page'))
+
+    class_year = request.form.get('class')
+    subject = request.form.get('subject')
+    exam_type = request.form.get('examType')
+    academic_year = datetime.now().year
+
+    try:
+        results = process_files(files)
+        if results:
+            # Convert the raw text results into proper format
+            formatted_results = []
+            for result in results:
+                if isinstance(result, str):  # If result is raw text
+                    try:
+                        # Parse the text into structured data
+                        data = {
+                            'roll_number': extract_roll_number(result),
+                            'questions': extract_question_marks(result),
+                            'total_marks': calculate_total_marks(result)
+                        }
+                        formatted_results.append(data)
+                    except Exception as e:
+                        print(f"Error parsing result: {str(e)}")
+                else:
+                    formatted_results.append(result)
+
+            # Save to database
+            db_results.save_results(formatted_results, class_year, subject, exam_type, str(academic_year))
+            
+            # Store in session for display
+            session['upload_results'] = formatted_results
+            
+            return redirect(url_for('show_results'))
+        else:
+            flash('No valid data extracted from files', 'error')
+            return redirect(url_for('upload_page'))
+            
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        flash('Error processing files', 'error')
+        return redirect(url_for('upload_page'))
+
+def extract_roll_number(text):
+    """Extract roll number from text"""
+    match = re.search(r'Roll No:?\s*([A-Z0-9]+)', text)
+    return match.group(1) if match else '000000000000'
+
+def extract_question_marks(text):
+    """Extract question marks from text"""
+    questions = {}
+    for i in range(1, 7):
+        questions[f'Q{i}'] = {'a': 0, 'b': 0, 'c': 0, 'd': 0}
+        
+    # Extract marks using regex
+    pattern = r'Q(\d+)[:\s]+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)'
+    matches = re.finditer(pattern, text)
+    
+    for match in matches:
+        q_num = match.group(1)
+        if 1 <= int(q_num) <= 6:
+            questions[f'Q{q_num}'] = {
+                'a': float(match.group(2)),
+                'b': float(match.group(3)),
+                'c': float(match.group(4)),
+                'd': float(match.group(5))
+            }
+    
+    return questions
+
+def calculate_total_marks(text):
+    """Calculate total marks from text"""
+    match = re.search(r'Total[:\s]+(\d+)', text)
+    return float(match.group(1)) if match else 0
+
+def get_or_create_subject(subject_name, class_name, academic_year):
+    """Helper function to get or create subject ID"""
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get or create class
+        cursor.execute('''
+            SELECT id FROM classes 
+            WHERE year = ? AND academic_year = ?
+        ''', (class_name, academic_year))
+        
+        class_result = cursor.fetchone()
+        if class_result:
+            class_id = class_result[0]
+        else:
+            cursor.execute('''
+                INSERT INTO classes (year, department, academic_year)
+                VALUES (?, ?, ?)
+            ''', (class_name, 'DEFAULT', academic_year))
+            class_id = cursor.lastrowid
+        
+        # Get or create subject
+        cursor.execute('''
+            SELECT id FROM subjects 
+            WHERE name = ? AND class_id = ?
+        ''', (subject_name, class_id))
+        
+        subject_result = cursor.fetchone()
+        if subject_result:
+            return subject_result[0]
+        
+        cursor.execute('''
+            INSERT INTO subjects (name, class_id, teacher_id)
+            VALUES (?, ?, ?)
+        ''', (subject_name, class_id, session.get('user_id')))
+        
+        return cursor.lastrowid
+
+@app.route('/results')
+@login_required
+def show_results():
+    if session.get('user_type') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+    
+    # Get results from session
+    json_data = session.get('upload_results', [])
+    
+    return render_template('results.html', json_data=json_data)
+
+@app.route('/delete_last', methods=['POST'])
+@login_required
+def delete_last():
+    if session.get('user_type') != 'teacher':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    json_data = session.get('upload_results', [])
+    
+    if not json_data:
+        return jsonify({'success': False, 'message': 'No entries to delete'}), 400
+    
+    # Remove the last entry
+    json_data.pop()
+    session['upload_results'] = json_data
+    
+    return jsonify({'success': True, 'message': 'Last entry deleted successfully'})
+
+@app.route('/download_excel')
+@login_required
+def download_excel():
+    if session.get('user_type') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+    
+    json_data = session.get('upload_results', [])
+    
+    if not json_data:
+        flash('No data available to download', 'error')
+        return redirect(url_for('show_results'))
+    
+    # Create a DataFrame from the JSON data
+    rows = []
+    for entry in json_data:
+        row = {
+            'Roll Number': entry.get('roll_number', ''),
+        }
+        
+        # Add question marks
+        for q_num in range(1, 7):
+            q_key = f'Q{q_num}'
+            if q_key in entry.get('questions', {}):
+                q_data = entry['questions'][q_key]
+                row[f'{q_key}a'] = q_data.get('a', 0)
+                row[f'{q_key}b'] = q_data.get('b', 0)
+                row[f'{q_key}c'] = q_data.get('c', 0)
+                row[f'{q_key}d'] = q_data.get('d', 0)
+            else:
+                row[f'{q_key}a'] = 0
+                row[f'{q_key}b'] = 0
+                row[f'{q_key}c'] = 0
+                row[f'{q_key}d'] = 0
+        
+        row['Total'] = entry.get('total_marks', 0)
+        rows.append(row)
+    
+    df = pd.DataFrame(rows)
+    
+    # Create Excel file
+    excel_file = os.path.join(app.config['UPLOAD_FOLDER'], 'results.xlsx')
+    df.to_excel(excel_file, index=False)
+    
+    # Return the file for download
+    return send_file(excel_file, as_attachment=True)
+
+@app.route('/marks-analysis')
+@login_required
+def marks_analysis():
+    if session.get('user_type') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get all years
+        cursor.execute("SELECT DISTINCT year FROM classes ORDER BY year")
+        years = [row[0] for row in cursor.fetchall()]
+        
+        # Get all subjects
+        cursor.execute("""
+            SELECT DISTINCT s.id, s.name 
+            FROM subjects s 
+            JOIN classes c ON s.class_id = c.id
+        """)
+        subjects = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
+        
+        # Get exam types
+        exam_types = ['MID1', 'MID2']
+        
+    return render_template('marks_analysis.html',
+                         teacher_name=session.get('full_name'),
+                         years=years,
+                         subjects=subjects,
+                         exam_types=exam_types)
+
+@app.route('/view-marks')
+@login_required
+def view_marks():
+    if session.get('user_type') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+    
+    # Get all years and exam types for the dropdowns
+    with db_results.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT class_year FROM students_results ORDER BY class_year")
+        years = [row[0] for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT DISTINCT exam_type FROM students_results ORDER BY exam_type")
+        exam_types = [row[0] for row in cursor.fetchall()]
+    
+    return render_template('view_marks.html', 
+                         years=years,
+                         exam_types=exam_types)
+
+@app.route('/api/view-marks')
+@login_required
+def get_marks():
+    year = request.args.get('year')
+    subject = request.args.get('subject')
+    exam_type = request.args.get('examType')
+    
+    with db_results.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get marks with question details
+        cursor.execute("""
+            SELECT sr.roll_number, sr.subject, sr.total_marks,
+                   qm.question_number, qm.part_a, qm.part_b, qm.part_c, qm.part_d
+            FROM students_results sr
+            LEFT JOIN question_marks qm ON sr.id = qm.result_id
+            WHERE sr.class_year = ? AND sr.subject = ? AND sr.exam_type = ?
+            ORDER BY sr.roll_number, qm.question_number
+        """, (year, subject, exam_type))
+        
+        results = {}
+        for row in cursor.fetchall():
+            roll_number = row[0]
+            if roll_number not in results:
+                results[roll_number] = {
+                    'roll_number': roll_number,
+                    'subject': row[1],
+                    'total_marks': row[2],
+                    'questions': {}
+                }
+            
+            if row[3]:  # if there are question details
+                q_num = row[3]
+                results[roll_number]['questions'][f'Q{q_num}'] = {
+                    'a': row[4], 'b': row[5], 'c': row[6], 'd': row[7]
+                }
+        
+        return jsonify(list(results.values()))
 
 if __name__ == '__main__':
     app.run(debug=True)
