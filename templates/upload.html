@@ -1,246 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Upload Answer Sheets</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
 
-        body {
-            min-height: 100vh;
-            background: #1e293b; /* Dark background similar to dashboard */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
+      body {
+        min-height: 100vh;
+        background: #1e293b; /* Dark background similar to dashboard */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
 
+      .container {
+        width: 100%;
+        max-width: 450px;
+        background: rgba(
+          30,
+          41,
+          59,
+          0.8
+        ); /* Darker background with transparency */
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        padding: 30px;
+        border-radius: 20px;
+        position: relative;
+        z-index: 1;
+        animation: fadeInUp 1s ease-out;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        color: #8b5cf6; /* Purple color from dashboard */
+        font-weight: 700;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #8b5cf6; /* Purple color from dashboard */
+      }
+
+      .form-group select,
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: white;
+      }
+
+      .folder-upload-container {
+        background: rgba(30, 41, 59, 0.5);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        text-align: center;
+        margin-bottom: 15px;
+      }
+
+      .custom-file-upload {
+        background: #8b5cf6; /* Purple color from dashboard */
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-block;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .custom-file-upload:hover {
+        background: #7c3aed; /* Slightly darker purple */
+        transform: translateY(-2px);
+      }
+
+      .upload-instructions {
+        margin-top: 10px;
+        font-size: 0.8em;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .selected-files {
+        margin-top: 10px;
+        padding: 8px;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 8px;
+        max-height: 80px;
+        overflow-y: auto;
+        font-size: 0.8em;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #8b5cf6; /* Purple color from dashboard */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background: #7c3aed; /* Slightly darker purple */
+        transform: translateY(-2px);
+      }
+
+      button:disabled {
+        background: rgba(139, 92, 246, 0.5);
+        cursor: not-allowed;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .decoration-circle {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: 0;
+      }
+
+      .circle-1 {
+        width: 600px;
+        height: 600px;
+        background: rgba(139, 92, 246, 0.15);
+        top: -300px;
+        right: -150px;
+      }
+
+      .circle-2 {
+        width: 400px;
+        height: 400px;
+        background: rgba(139, 92, 246, 0.15);
+        bottom: -200px;
+        left: -100px;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 480px) {
         .container {
-            width: 100%;
-            max-width: 450px;
-            background: rgba(30, 41, 59, 0.8); /* Darker background with transparency */
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            padding: 30px;
-            border-radius: 20px;
-            position: relative;
-            z-index: 1;
-            animation: fadeInUp 1s ease-out;
+          padding: 20px;
         }
-
         h1 {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            color: #8B5CF6; /* Purple color from dashboard */
-            font-weight: 700;
+          font-size: 1.2rem;
         }
+      }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+      .loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: #8B5CF6; /* Purple color from dashboard */
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-        .form-group select, .form-group input {
-            width: 100%;
-            padding: 10px;
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: white;
-        }
+      .fa-spinner {
+        animation: spin 1s linear infinite;
+      }
 
-        .folder-upload-container {
-            background: rgba(30, 41, 59, 0.5);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            text-align: center;
-            margin-bottom: 15px;
-        }
+      /* Add loading overlay */
+      .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
 
-        .custom-file-upload {
-            background: #8B5CF6; /* Purple color from dashboard */
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: inline-block;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
+      .upload-overlay.active {
+        display: flex;
+      }
 
-        .custom-file-upload:hover {
-            background: #7C3AED; /* Slightly darker purple */
-            transform: translateY(-2px);
-        }
-
-        .upload-instructions {
-            margin-top: 10px;
-            font-size: 0.8em;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .selected-files {
-            margin-top: 10px;
-            padding: 8px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 8px;
-            max-height: 80px;
-            overflow-y: auto;
-            font-size: 0.8em;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #8B5CF6; /* Purple color from dashboard */
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background: #7C3AED; /* Slightly darker purple */
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            background: rgba(139, 92, 246, 0.5);
-            cursor: not-allowed;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .decoration-circle {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            z-index: 0;
-        }
-
-        .circle-1 {
-            width: 600px;
-            height: 600px;
-            background: rgba(139, 92, 246, 0.15);
-            top: -300px;
-            right: -150px;
-        }
-
-        .circle-2 {
-            width: 400px;
-            height: 400px;
-            background: rgba(139, 92, 246, 0.15);
-            bottom: -200px;
-            left: -100px;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 20px;
-            }
-            h1 {
-                font-size: 1.2rem;
-            }
-        }
+      .upload-progress {
+        background: #1e293b;
+        padding: 2rem;
+        border-radius: 1rem;
+        text-align: center;
+        color: white;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="decoration-circle circle-1"></div>
     <div class="decoration-circle circle-2"></div>
 
     <div class="container">
-        <h1>Upload Answer Sheets</h1>
-        <form id="uploadForm" action="{{ url_for('upload_folder') }}" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="class">Class</label>
-                <select id="class" name="class" required>
-                    <option value="">Select Class</option>
-                    <option value="FY">First Year</option>
-                    <option value="SY">Second Year</option>
-                    <option value="TY">Third Year</option>
-                    <option value="Final">Final Year</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="subject">Subject</label>
-                <select id="subject" name="subject" required>
-                    <option value="">Select Subject</option>
-                    <option value="java">Java</option>
-                    <option value="python">Python</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="examType">Exam Type</label>
-                <select id="examType" name="examType" required>
-                    <option value="">Select Exam Type</option>
-                    <option value="MID1">Mid Term 1</option>
-                    <option value="MID2">Mid Term 2</option>
-                </select>
-            </div>
-            <div class="folder-upload-container">
-                <label for="fileInput" class="custom-file-upload">
-                    <i class="fas fa-folder-plus"></i> Choose Files
-                </label>
-                <input type="file" id="fileInput" name="files[]" multiple accept="image/*" required>
-                <div id="selectedFiles" class="selected-files"></div>
-                <button type="submit" class="submit-btn">
-                    <i class="fas fa-upload"></i> Process Images
-                </button>
-            </div>
-        </form>
+      <h1>Upload Answer Sheets</h1>
+      <form
+        id="uploadForm"
+        action="{{ url_for('upload_folder') }}"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="class">Class</label>
+          <select id="class" name="class" required>
+            <option value="">Select Class</option>
+            <option value="FY">First Year</option>
+            <option value="SY">Second Year</option>
+            <option value="TY">Third Year</option>
+            <option value="Final">Final Year</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <select id="subject" name="subject" required>
+            <option value="">Select Subject</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="examType">Exam Type</label>
+          <select id="examType" name="examType" required>
+            <option value="">Select Exam Type</option>
+            <option value="MID1">Mid Term 1</option>
+            <option value="MID2">Mid Term 2</option>
+          </select>
+        </div>
+        <div class="folder-upload-container">
+          <label for="fileInput" class="custom-file-upload">
+            <i class="fas fa-folder-plus"></i> Choose Files
+          </label>
+          <input
+            type="file"
+            id="fileInput"
+            name="files[]"
+            multiple
+            accept="image/*"
+            required
+          />
+          <div id="selectedFiles" class="selected-files"></div>
+          <button type="submit" class="submit-btn">
+            <i class="fas fa-upload"></i> Process Images
+          </button>
+        </div>
+      </form>
     </div>
 
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const selectedFiles = document.getElementById('selectedFiles');
+      const uploadForm = document.getElementById("uploadForm");
+      const fileInput = document.getElementById("fileInput");
+      const selectedFiles = document.getElementById("selectedFiles");
 
-        fileInput.addEventListener('change', function() {
-            const files = Array.from(this.files);
-            const imageFiles = files.filter(file => file.type.startsWith('image/'));
-            
-            selectedFiles.innerHTML = `
-                <div class="file-count">Selected ${imageFiles.length} image(s)</div>
-                <div class="upload-instructions">Only image files will be processed</div>
-            `;
-        });
+      fileInput.addEventListener("change", function () {
+        const files = Array.from(this.files);
+        const imageFiles = files.filter((file) =>
+          file.type.startsWith("image/")
+        );
+
+        selectedFiles.innerHTML = `
+            <div class="file-count">Selected ${imageFiles.length} image(s)</div>
+            <div class="upload-instructions">Only image files will be processed</div>
+        `;
+      });
+
+      uploadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // Show loading state
+        const submitBtn = uploadForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(uploadForm);
+
+          const response = await fetch(uploadForm.action, {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Show success message
+            alert(result.message);
+            // Redirect to results page
+            window.location.href = result.redirect;
+          } else {
+            alert(result.message || "Upload failed");
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        } catch (error) {
+          console.error("Upload error:", error);
+          alert("Error uploading files");
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+
+      // Add drag and drop functionality
+      const uploadArea = document.querySelector(".folder-upload-container");
+
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = "#8B5CF6";
+        uploadArea.style.background = "rgba(139, 92, 246, 0.2)";
+      });
+
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.style.borderColor = "rgba(139, 92, 246, 0.2)";
+        uploadArea.style.background = "rgba(30, 41, 59, 0.5)";
+      });
+
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = "rgba(139, 92, 246, 0.2)";
+        uploadArea.style.background = "rgba(30, 41, 59, 0.5)";
+
+        const files = e.dataTransfer.files;
+        fileInput.files = files;
+
+        const imageFiles = Array.from(files).filter((file) =>
+          file.type.startsWith("image/")
+        );
+        selectedFiles.innerHTML = `
+            <div class="file-count">Selected ${imageFiles.length} image(s)</div>
+            <div class="upload-instructions">Only image files will be processed</div>
+        `;
+      });
     </script>
-</body>
+  </body>
 </html>

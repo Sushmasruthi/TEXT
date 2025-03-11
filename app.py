@@ -505,17 +505,21 @@ def upload_folder():
         # Store in session for display
         session["upload_results"] = results
 
+        # Return success with absolute URL for redirect
         return jsonify(
             {
                 "success": True,
                 "message": f"Successfully processed {len(results)} files",
-                "redirect": url_for("show_results"),
+                "redirect": url_for("show_results", _external=True),
             }
         )
 
     except Exception as e:
         print(f"Upload error: {str(e)}")
-        return jsonify({"success": False, "message": "Error processing files"}), 500
+        return (
+            jsonify({"success": False, "message": f"Error processing files: {str(e)}"}),
+            500,
+        )
 
 
 def extract_roll_number(text):

@@ -1,6 +1,10 @@
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import os
+
+if not os.path.exists("./database"):
+    os.makedirs("./database")
 
 
 def create_connection():
