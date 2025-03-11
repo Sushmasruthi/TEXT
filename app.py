@@ -28,6 +28,9 @@ import json
 from PIL import Image
 from datetime import datetime
 import re
+import shutil
+from zipfile import ZipFile
+import tempfile
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key_here"  # Change this to a secure secret key
@@ -45,6 +48,9 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+TEMP_FOLDER = "temp"
+os.makedirs(TEMP_FOLDER, exist_ok=True)
 
 
 # Helper function to check allowed file extensions
@@ -292,99 +298,15 @@ def get_analysis():
     subject = request.args.get("subject")
     exam_type = request.args.get("examType")
 
-    with db_results.get_connection() as conn:
-        cursor = conn.cursor()
+    if not all([year, subject, exam_type]):
+        return jsonify({"error": "Missing required parameters"}), 400
 
-        # Get basic statistics with updated pass mark (10)
-        cursor.execute(
-            """
-            SELECT 
-                COUNT(*) as total_students,
-                COUNT(CASE WHEN total_marks >= 10 THEN 1 END) as passed_students,
-                AVG(total_marks) as avg_marks,
-                MAX(total_marks) as highest_marks,
-                MIN(total_marks) as lowest_marks,
-                COUNT(CASE WHEN total_marks BETWEEN 0 AND 8 THEN 1 END) as range1,
-                COUNT(CASE WHEN total_marks BETWEEN 9 AND 16 THEN 1 END) as range2,
-                COUNT(CASE WHEN total_marks BETWEEN 17 AND 24 THEN 1 END) as range3,
-                COUNT(CASE WHEN total_marks BETWEEN 25 AND 32 THEN 1 END) as range4,
-                COUNT(CASE WHEN total_marks BETWEEN 33 AND 40 THEN 1 END) as range5
-            FROM students_results
-            WHERE class_year = ? AND subject = ? AND exam_type = ?
-        """,
-            (year, subject, exam_type),
-        )
-
-        stats = cursor.fetchone()
-
-        # Get top performers (based on 20 as average)
-        cursor.execute(
-            """
-            SELECT roll_number, total_marks
-            FROM students_results
-            WHERE class_year = ? AND subject = ? AND exam_type = ? AND total_marks > 20
-            ORDER BY total_marks DESC
-            LIMIT 5
-        """,
-            (year, subject, exam_type),
-        )
-
-        toppers = [{"rollNumber": row[0], "marks": row[1]} for row in cursor.fetchall()]
-
-        # Get students needing improvement (below average)
-        cursor.execute(
-            """
-            SELECT roll_number, total_marks
-            FROM students_results
-            WHERE class_year = ? AND subject = ? AND exam_type = ? AND total_marks < 20
-            ORDER BY total_marks ASC
-            LIMIT 5
-        """,
-            (year, subject, exam_type),
-        )
-
-        need_improvement = [
-            {"rollNumber": row[0], "marks": row[1]} for row in cursor.fetchall()
-        ]
-
-        # Get subject-wise statistics
-        cursor.execute(
-            """
-            SELECT 
-                subject,
-                MAX(total_marks) as highest_mark,
-                MIN(total_marks) as lowest_mark,
-                AVG(total_marks) as avg_marks
-            FROM students_results
-            WHERE class_year = ? AND exam_type = ?
-            GROUP BY subject
-        """,
-            (year, exam_type),
-        )
-
-        subject_stats = cursor.fetchall()
-
-        return jsonify(
-            {
-                "totalStudents": stats[0],
-                "passCount": stats[1],
-                "averageMarks": round(stats[2], 2) if stats[2] else 0,
-                "highestMarks": stats[3],
-                "lowestMarks": stats[4],
-                "scoreDistribution": list(stats[5:10]),
-                "toppers": toppers,
-                "needImprovement": need_improvement,
-                "subjectStats": [
-                    {
-                        "subject": row[0],
-                        "highest": row[1],
-                        "lowest": row[2],
-                        "average": round(row[3], 2),
-                    }
-                    for row in subject_stats
-                ],
-            }
-        )
+    try:
+        analysis = db_results.get_detailed_analysis(year, subject, exam_type)
+        return jsonify(analysis)
+    except Exception as e:
+        print(f"Analysis error: {str(e)}")
+        return jsonify({"error": "Failed to fetch analysis"}), 500
 
 
 def process_files(files):
@@ -473,29 +395,79 @@ def upload_folder():
     if session.get("user_type") != "teacher":
         return jsonify({"success": False, "message": "Unauthorized access"}), 403
 
-    if "files[]" not in request.files:
-        return jsonify({"success": False, "message": "No files uploaded"}), 400
-
-    files = request.files.getlist("files[]")
-    if not files or files[0].filename == "":
-        return jsonify({"success": False, "message": "No selected files"}), 400
-
-    class_year = request.form.get("class")
-    subject = request.form.get("subject")
-    exam_type = request.form.get("examType")
-    academic_year = str(datetime.now().year)
-
-    if not all([class_year, subject, exam_type]):
-        return jsonify({"success": False, "message": "Missing required fields"}), 400
-
     try:
-        results = process_files(files)
+        class_year = request.form.get("class")
+        subject = request.form.get("subject")
+        exam_type = request.form.get("examType")
+        academic_year = str(datetime.now().year)
+
+        if not all([class_year, subject, exam_type]):
+            return (
+                jsonify({"success": False, "message": "Missing required fields"}),
+                400,
+            )
+
+        results = []
+
+        # Handle individual file uploads first
+        if "files[]" in request.files:
+            files = request.files.getlist("files[]")
+            if not files or files[0].filename == "":
+                return jsonify({"success": False, "message": "No files selected"}), 400
+
+            image_files = [f for f in files if allowed_file(f.filename)]
+            if not image_files:
+                return (
+                    jsonify(
+                        {"success": False, "message": "No valid image files found"}
+                    ),
+                    400,
+                )
+
+            results = process_files(image_files)
+
+        # Handle folder upload
+        elif "folder[]" in request.files:
+            files = request.files.getlist("folder[]")
+            image_files = [f for f in files if allowed_file(f.filename)]
+
+            if not image_files:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "message": "No valid image files found in folder",
+                        }
+                    ),
+                    400,
+                )
+
+            for file in image_files:
+                try:
+                    if not file.filename:
+                        continue
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                    file.save(filepath)
+
+                    result = process_single_image(filepath)
+                    if result:
+                        results.append(result)
+
+                    # Clean up the temporary file
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+
+                except Exception as e:
+                    print(f"Error processing {file.filename}: {str(e)}")
+                    continue
+
+        else:
+            return jsonify({"success": False, "message": "No files uploaded"}), 400
 
         if not results:
             return (
-                jsonify(
-                    {"success": False, "message": "No valid data extracted from files"}
-                ),
+                jsonify({"success": False, "message": "No valid data extracted"}),
                 400,
             )
 
@@ -505,12 +477,11 @@ def upload_folder():
         # Store in session for display
         session["upload_results"] = results
 
-        # Return success with absolute URL for redirect
         return jsonify(
             {
                 "success": True,
                 "message": f"Successfully processed {len(results)} files",
-                "redirect": url_for("show_results", _external=True),
+                "redirect": url_for("show_results"),
             }
         )
 
@@ -520,6 +491,73 @@ def upload_folder():
             jsonify({"success": False, "message": f"Error processing files: {str(e)}"}),
             500,
         )
+
+
+def process_single_image(file_path):
+    """Process a single image file and return extracted data."""
+    try:
+        # Extract text from image
+        extracted_result = extract_text_from_image(file_path)
+
+        if not extracted_result or not isinstance(extracted_result, dict):
+            print(f"Invalid extraction result from {file_path}")
+            return None
+
+        # Get the extracted text from the result
+        extracted_text = extracted_result.get("text")
+        if not extracted_text:
+            print(f"No text content extracted from {file_path}")
+            return None
+
+        # Process the extracted text into structured data
+        processed_data = process_text_with_image(extracted_text, file_path)
+
+        if not processed_data:
+            print(f"Failed to process data from {file_path}")
+            return None
+
+        return validate_processed_data(processed_data)
+
+    except Exception as e:
+        print(f"Error processing {file_path}: {str(e)}")
+        return None
+
+
+def validate_processed_data(data):
+    """Validate processed data structure."""
+    if not isinstance(data, dict):
+        return None
+
+    # Ensure required fields exist
+    required_fields = ["roll_number", "questions", "total_marks"]
+    if not all(field in data for field in required_fields):
+        return None
+
+    # Validate questions structure
+    questions = data.get("questions", {})
+    if not isinstance(questions, dict):
+        return None
+
+    # Validate question data structure
+    for q_num in range(1, 7):
+        q_key = f"Q{q_num}"
+        if q_key not in questions:
+            questions[q_key] = {"a": 0, "b": 0, "c": 0, "d": 0}
+            continue
+
+        q_data = questions[q_key]
+        if not isinstance(q_data, dict) or not all(
+            part in q_data for part in ["a", "b", "c", "d"]
+        ):
+            return None
+
+        # Validate mark values
+        for part in ["a", "b", "c", "d"]:
+            mark = q_data[part]
+            if not isinstance(mark, (int, float)) or not (0 <= mark <= 8):
+                q_data[part] = 0
+
+    return data
 
 
 def extract_roll_number(text):
@@ -697,22 +735,101 @@ def marks_analysis():
     with db.get_connection() as conn:
         cursor = conn.cursor()
 
-        # Get all years
-        cursor.execute("SELECT DISTINCT year FROM classes ORDER BY year")
-        years = [row[0] for row in cursor.fetchall()]
-
-        # Get all subjects
+        # Get all classes from the classes table
         cursor.execute(
             """
-            SELECT DISTINCT s.id, s.name 
-            FROM subjects s 
-            JOIN classes c ON s.class_id = c.id
+            SELECT DISTINCT c.year, c.academic_year 
+            FROM classes c
+            ORDER BY c.academic_year DESC, c.year
         """
         )
-        subjects = [{"id": row[0], "name": row[1]} for row in cursor.fetchall()]
+        class_years = [f"{row[0]} ({row[1]})" for row in cursor.fetchall()]
 
-        # Get exam types
-        exam_types = ["MID1", "MID2"]
+        # Get all subjects from the subjects table
+        cursor.execute(
+            """
+            SELECT DISTINCT s.name 
+            FROM subjects s
+            JOIN classes c ON s.class_id = c.id
+            ORDER BY s.name
+        """
+        )
+        all_subjects = [row[0] for row in cursor.fetchall()]
+
+    with db_results.get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Get all unique class years from results
+        cursor.execute(
+            """
+            SELECT DISTINCT class_year 
+            FROM students_results 
+            ORDER BY class_year
+        """
+        )
+        result_years = [row[0] for row in cursor.fetchall()]
+
+        # Get all unique subjects from results
+        cursor.execute(
+            """
+            SELECT DISTINCT subject 
+            FROM students_results 
+            ORDER BY subject
+        """
+        )
+        result_subjects = [row[0] for row in cursor.fetchall()]
+
+        # Get all unique exam types
+        cursor.execute(
+            """
+            SELECT DISTINCT exam_type 
+            FROM students_results 
+            ORDER BY exam_type
+        """
+        )
+        exam_types = [row[0] for row in cursor.fetchall()]
+
+        # Get summary statistics for each class and subject
+        cursor.execute(
+            """
+            SELECT 
+                class_year,
+                subject,
+                exam_type,
+                COUNT(*) as total_students,
+                AVG(total_marks) as avg_marks,
+                MAX(total_marks) as max_marks,
+                MIN(total_marks) as min_marks,
+                COUNT(CASE WHEN total_marks >= 20 THEN 1 END) as passed_count
+            FROM students_results
+            GROUP BY class_year, subject, exam_type
+            ORDER BY class_year, subject, exam_type
+        """
+        )
+
+        class_stats = {}
+        for row in cursor.fetchall():
+            if row[0] not in class_stats:
+                class_stats[row[0]] = {}
+            if row[1] not in class_stats[row[0]]:
+                class_stats[row[0]][row[1]] = {}
+
+            total_students = row[3]
+            class_stats[row[0]][row[1]][row[2]] = {
+                "total_students": total_students,
+                "avg_marks": round(row[4], 2) if row[4] else 0,
+                "max_marks": row[5],
+                "min_marks": row[6],
+                "pass_percentage": (
+                    round((row[7] / total_students * 100), 2)
+                    if total_students > 0
+                    else 0
+                ),
+            }
+
+    # Combine years and subjects from both databases
+    years = sorted(set(class_years + result_years))
+    subjects = sorted(set(all_subjects + result_subjects))
 
     return render_template(
         "marks_analysis.html",
@@ -720,6 +837,7 @@ def marks_analysis():
         years=years,
         subjects=subjects,
         exam_types=exam_types,
+        class_stats=class_stats,
     )
 
 
@@ -790,6 +908,68 @@ def get_marks():
                 }
 
         return jsonify(list(results.values()))
+
+
+@app.route("/api/update-marks", methods=["POST"])
+@login_required
+def update_marks():
+    if session.get("user_type") != "teacher":
+        return jsonify({"success": False, "message": "Unauthorized access"}), 403
+
+    try:
+        data = request.get_json()
+        roll_number = data.get("roll_number")
+        class_year = data.get("class_year")
+        subject = data.get("subject")
+        exam_type = data.get("exam_type")
+        question_marks = data.get("questions")
+        total_marks = data.get("total_marks")
+
+        if not all(
+            [roll_number, class_year, subject, exam_type, question_marks, total_marks]
+        ):
+            return (
+                jsonify({"success": False, "message": "Missing required fields"}),
+                400,
+            )
+
+        success, message = db_results.update_result(
+            roll_number, class_year, subject, exam_type, question_marks, total_marks
+        )
+
+        return jsonify({"success": success, "message": message})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/delete-marks", methods=["POST"])
+@login_required
+def delete_marks():
+    if session.get("user_type") != "teacher":
+        return jsonify({"success": False, "message": "Unauthorized access"}), 403
+
+    try:
+        data = request.get_json()
+        roll_number = data.get("roll_number")
+        class_year = data.get("class_year")
+        subject = data.get("subject")
+        exam_type = data.get("exam_type")
+
+        if not all([roll_number, class_year, subject, exam_type]):
+            return (
+                jsonify({"success": False, "message": "Missing required fields"}),
+                400,
+            )
+
+        success, message = db_results.delete_result(
+            roll_number, class_year, subject, exam_type
+        )
+
+        return jsonify({"success": success, "message": message})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 if __name__ == "__main__":

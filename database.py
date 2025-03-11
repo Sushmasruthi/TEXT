@@ -467,6 +467,233 @@ class ResultsDatabase:
                     conn.rollback()  # Rollback on error
                     continue
 
+    def get_detailed_analysis(self, class_year, subject, exam_type):
+        """Get detailed analysis of exam results"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            analysis = {
+                "overall_stats": {},
+                "question_stats": {},
+                "performance_trends": {},
+                "student_distribution": {},
+                "top_performers": [],
+                "needs_improvement": [],
+            }
+
+            # Get overall statistics
+            cursor.execute(
+                """
+                SELECT 
+                    COUNT(*) as total_students,
+                    AVG(total_marks) as avg_marks,
+                    MAX(total_marks) as max_marks,
+                    MIN(total_marks) as min_marks,
+                    COUNT(CASE WHEN total_marks >= 20 THEN 1 END) as passed_count
+                FROM students_results
+                WHERE class_year = ? AND subject = ? AND exam_type = ?
+            """,
+                (class_year, subject, exam_type),
+            )
+
+            result = cursor.fetchone()
+            if result:
+                total_students = result[0]
+                analysis["overall_stats"] = {
+                    "total_students": total_students,
+                    "average_marks": round(result[1], 2) if result[1] else 0,
+                    "highest_marks": result[2],
+                    "lowest_marks": result[3],
+                    "pass_percentage": (
+                        round((result[4] / total_students * 100), 2)
+                        if total_students > 0
+                        else 0
+                    ),
+                }
+
+            # Get question-wise statistics
+            for q_num in range(1, 7):
+                cursor.execute(
+                    """
+                    SELECT 
+                        AVG(part_a) as avg_a,
+                        AVG(part_b) as avg_b,
+                        AVG(part_c) as avg_c,
+                        AVG(part_d) as avg_d,
+                        MAX(part_a + part_b + part_c + part_d) as max_total,
+                        MIN(part_a + part_b + part_c + part_d) as min_total
+                    FROM question_marks qm
+                    JOIN students_results sr ON sr.id = qm.result_id
+                    WHERE sr.class_year = ? AND sr.subject = ? 
+                    AND sr.exam_type = ? AND qm.question_number = ?
+                """,
+                    (class_year, subject, exam_type, q_num),
+                )
+
+                q_stats = cursor.fetchone()
+                if q_stats:
+                    analysis["question_stats"][f"Q{q_num}"] = {
+                        "average_marks": {
+                            "a": round(q_stats[0], 2) if q_stats[0] else 0,
+                            "b": round(q_stats[1], 2) if q_stats[1] else 0,
+                            "c": round(q_stats[2], 2) if q_stats[2] else 0,
+                            "d": round(q_stats[3], 2) if q_stats[3] else 0,
+                        },
+                        "max_total": q_stats[4],
+                        "min_total": q_stats[5],
+                    }
+
+            # Get marks distribution
+            cursor.execute(
+                """
+                SELECT 
+                    CASE 
+                        WHEN total_marks BETWEEN 0 AND 8 THEN '0-8'
+                        WHEN total_marks BETWEEN 9 AND 16 THEN '9-16'
+                        WHEN total_marks BETWEEN 17 AND 24 THEN '17-24'
+                        WHEN total_marks BETWEEN 25 AND 32 THEN '25-32'
+                        ELSE '33-40'
+                    END as range,
+                    COUNT(*) as count
+                FROM students_results
+                WHERE class_year = ? AND subject = ? AND exam_type = ?
+                GROUP BY range
+                ORDER BY range
+            """,
+                (class_year, subject, exam_type),
+            )
+
+            analysis["student_distribution"] = {
+                row[0]: row[1] for row in cursor.fetchall()
+            }
+
+            # Get top performers
+            cursor.execute(
+                """
+                SELECT roll_number, total_marks
+                FROM students_results
+                WHERE class_year = ? AND subject = ? AND exam_type = ?
+                ORDER BY total_marks DESC
+                LIMIT 5
+            """,
+                (class_year, subject, exam_type),
+            )
+
+            analysis["top_performers"] = [
+                {"roll_number": row[0], "marks": row[1]} for row in cursor.fetchall()
+            ]
+
+            # Get students needing improvement
+            cursor.execute(
+                """
+                SELECT roll_number, total_marks
+                FROM students_results
+                WHERE class_year = ? AND subject = ? AND exam_type = ?
+                    AND total_marks < (
+                        SELECT AVG(total_marks) 
+                        FROM students_results 
+                        WHERE class_year = ? AND subject = ? AND exam_type = ?
+                    )
+                ORDER BY total_marks ASC
+                LIMIT 5
+            """,
+                (class_year, subject, exam_type, class_year, subject, exam_type),
+            )
+
+            analysis["needs_improvement"] = [
+                {"roll_number": row[0], "marks": row[1]} for row in cursor.fetchall()
+            ]
+
+            return analysis
+
+    def update_result(
+        self, roll_number, class_year, subject, exam_type, question_marks, total_marks
+    ):
+        """Update marks for a student"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                # First update the main result
+                cursor.execute(
+                    """
+                    UPDATE students_results 
+                    SET total_marks = ?
+                    WHERE roll_number = ? AND class_year = ? AND subject = ? AND exam_type = ?
+                    RETURNING id
+                """,
+                    (total_marks, roll_number, class_year, subject, exam_type),
+                )
+
+                result = cursor.fetchone()
+                if not result:
+                    return False, "Result not found"
+
+                result_id = result[0]
+
+                # Update question marks
+                for q_num, marks in question_marks.items():
+                    cursor.execute(
+                        """
+                        UPDATE question_marks
+                        SET part_a = ?, part_b = ?, part_c = ?, part_d = ?
+                        WHERE result_id = ? AND question_number = ?
+                    """,
+                        (
+                            marks["a"],
+                            marks["b"],
+                            marks["c"],
+                            marks["d"],
+                            result_id,
+                            int(q_num[1]),
+                        ),
+                    )
+
+                conn.commit()
+                return True, "Marks updated successfully"
+            except Exception as e:
+                conn.rollback()
+                return False, str(e)
+
+    def delete_result(self, roll_number, class_year, subject, exam_type):
+        """Delete a student's result"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                # First get the result ID
+                cursor.execute(
+                    """
+                    SELECT id FROM students_results
+                    WHERE roll_number = ? AND class_year = ? AND subject = ? AND exam_type = ?
+                """,
+                    (roll_number, class_year, subject, exam_type),
+                )
+
+                result = cursor.fetchone()
+                if not result:
+                    return False, "Result not found"
+
+                result_id = result[0]
+
+                # Delete question marks first (due to foreign key constraint)
+                cursor.execute(
+                    "DELETE FROM question_marks WHERE result_id = ?", (result_id,)
+                )
+
+                # Then delete the main result
+                cursor.execute(
+                    """
+                    DELETE FROM students_results
+                    WHERE id = ?
+                """,
+                    (result_id,),
+                )
+
+                conn.commit()
+                return True, "Result deleted successfully"
+            except Exception as e:
+                conn.rollback()
+                return False, str(e)
+
 
 # Initialize the database when the module is imported
 init_db()
