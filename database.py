@@ -358,6 +358,10 @@ class ResultsDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
+            # Drop existing tables if they exist
+            cursor.execute("DROP TABLE IF EXISTS question_marks")
+            cursor.execute("DROP TABLE IF EXISTS students_results")
+
             # Create tables for storing results
             cursor.execute(
                 """
@@ -370,7 +374,7 @@ class ResultsDatabase:
                     academic_year TEXT NOT NULL,
                     total_marks FLOAT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(roll_number, subject, exam_type, academic_year)
+                    UNIQUE(roll_number, class_year, subject, exam_type, academic_year)
                 )
             """
             )
@@ -393,52 +397,70 @@ class ResultsDatabase:
 
     def save_results(self, results, class_year, subject, exam_type, academic_year):
         """Save results to database"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
+        successful_saves = 0
+        errors = []
 
-            for entry in results:
-                try:
-                    # Validate entry structure
-                    if not isinstance(entry, dict):
-                        print(f"Invalid entry format: {entry}")
-                        continue
+        for entry in results:
+            try:
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
 
-                    # Get roll number with default
                     roll_number = entry.get("roll_number")
                     if not roll_number:
                         print("Missing roll number, skipping entry")
                         continue
 
-                    # Validate questions data
-                    questions = entry.get("questions", {})
-                    if not isinstance(questions, dict):
-                        print(f"Invalid questions format for roll number {roll_number}")
-                        continue
-
-                    # Get total marks with default
-                    total_marks = entry.get("total_marks", 0)
-
-                    # Insert student result
+                    # First check if this exact combination exists
                     cursor.execute(
                         """
-                        INSERT INTO students_results 
-                        (roll_number, class_year, subject, exam_type, academic_year, total_marks)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        SELECT id FROM students_results 
+                        WHERE roll_number = ? AND class_year = ? AND subject = ? AND exam_type = ? AND academic_year = ?
                     """,
-                        (
-                            roll_number,
-                            class_year,
-                            subject,
-                            exam_type,
-                            academic_year,
-                            total_marks,
-                        ),
+                        (roll_number, class_year, subject, exam_type, academic_year),
                     )
 
-                    result_id = cursor.lastrowid
+                    existing_record = cursor.fetchone()
+                    total_marks = entry.get("total_marks", 0)
+                    questions = entry.get("questions", {})
+
+                    if existing_record:
+                        # Update existing record
+                        result_id = existing_record[0]
+                        cursor.execute(
+                            """
+                            UPDATE students_results 
+                            SET total_marks = ?
+                            WHERE id = ?
+                        """,
+                            (total_marks, result_id),
+                        )
+
+                        # Delete existing question marks
+                        cursor.execute(
+                            "DELETE FROM question_marks WHERE result_id = ?",
+                            (result_id,),
+                        )
+                    else:
+                        # Insert new record
+                        cursor.execute(
+                            """
+                            INSERT INTO students_results 
+                            (roll_number, class_year, subject, exam_type, academic_year, total_marks)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                            (
+                                roll_number,
+                                class_year,
+                                subject,
+                                exam_type,
+                                academic_year,
+                                total_marks,
+                            ),
+                        )
+                        result_id = cursor.lastrowid
 
                     # Insert question marks
-                    for q_num in range(1, 7):  # Ensure we handle all 6 questions
+                    for q_num in range(1, 7):
                         q_key = f"Q{q_num}"
                         q_data = questions.get(q_key, {"a": 0, "b": 0, "c": 0, "d": 0})
 
@@ -447,7 +469,7 @@ class ResultsDatabase:
                             INSERT INTO question_marks 
                             (result_id, question_number, part_a, part_b, part_c, part_d)
                             VALUES (?, ?, ?, ?, ?, ?)
-                            """,
+                        """,
                             (
                                 result_id,
                                 q_num,
@@ -458,14 +480,25 @@ class ResultsDatabase:
                             ),
                         )
 
-                    conn.commit()  # Commit after each successful entry
-
-                except Exception as e:
+                    conn.commit()
+                    successful_saves += 1
                     print(
-                        f"Error saving result for {entry.get('roll_number', 'Unknown')}: {str(e)}"
+                        f"Successfully processed result for roll number {roll_number}"
                     )
-                    conn.rollback()  # Rollback on error
-                    continue
+
+            except Exception as e:
+                error_msg = f"Error processing result for {entry.get('roll_number', 'Unknown')}: {str(e)}"
+                print(error_msg)
+                errors.append(error_msg)
+                continue
+
+        print(f"Total successful saves: {successful_saves}")
+        if errors:
+            print("Errors encountered:")
+            for error in errors:
+                print(error)
+
+        return successful_saves
 
     def get_detailed_analysis(self, class_year, subject, exam_type):
         """Get detailed analysis of exam results"""

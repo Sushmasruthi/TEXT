@@ -31,6 +31,9 @@ import re
 import shutil
 from zipfile import ZipFile
 import tempfile
+import openpyxl
+import time
+import threading
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key_here"  # Change this to a secure secret key
@@ -408,62 +411,46 @@ def upload_folder():
             )
 
         results = []
+        files_to_process = []
 
-        # Handle individual file uploads first
+        # Handle individual file uploads
         if "files[]" in request.files:
             files = request.files.getlist("files[]")
-            if not files or files[0].filename == "":
-                return jsonify({"success": False, "message": "No files selected"}), 400
-
-            image_files = [f for f in files if allowed_file(f.filename)]
-            if not image_files:
-                return (
-                    jsonify(
-                        {"success": False, "message": "No valid image files found"}
-                    ),
-                    400,
-                )
-
-            results = process_files(image_files)
+            if files and files[0].filename:
+                files_to_process.extend([f for f in files if allowed_file(f.filename)])
 
         # Handle folder upload
-        elif "folder[]" in request.files:
-            files = request.files.getlist("folder[]")
-            image_files = [f for f in files if allowed_file(f.filename)]
-
-            if not image_files:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "message": "No valid image files found in folder",
-                        }
-                    ),
-                    400,
+        if "folder[]" in request.files:
+            folder_files = request.files.getlist("folder[]")
+            if folder_files and folder_files[0].filename:
+                files_to_process.extend(
+                    [f for f in folder_files if allowed_file(f.filename)]
                 )
 
-            for file in image_files:
-                try:
-                    if not file.filename:
-                        continue
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                    file.save(filepath)
+        if not files_to_process:
+            return (
+                jsonify({"success": False, "message": "No valid image files found"}),
+                400,
+            )
 
-                    result = process_single_image(filepath)
-                    if result:
-                        results.append(result)
+        # Process all collected files
+        for file in files_to_process:
+            try:
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                file.save(filepath)
 
-                    # Clean up the temporary file
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
+                result = process_single_image(filepath)
+                if result:
+                    results.append(result)
 
-                except Exception as e:
-                    print(f"Error processing {file.filename}: {str(e)}")
-                    continue
+                # Clean up the temporary file
+                if os.path.exists(filepath):
+                    os.remove(filepath)
 
-        else:
-            return jsonify({"success": False, "message": "No files uploaded"}), 400
+            except Exception as e:
+                print(f"Error processing {file.filename}: {str(e)}")
+                continue
 
         if not results:
             return (
@@ -861,6 +848,9 @@ def view_marks():
         )
         exam_types = [row[0] for row in cursor.fetchall()]
 
+        print(f"Years: {years}")
+        print(f"Exam Types: {exam_types}")
+
     return render_template("view_marks.html", years=years, exam_types=exam_types)
 
 
@@ -970,6 +960,120 @@ def delete_marks():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/download-marks")
+@login_required
+def download_marks():
+    if session.get("user_type") != "teacher":
+        flash("Unauthorized access", "error")
+        return redirect(url_for("index"))
+
+    year = request.args.get("year")
+    subject = request.args.get("subject")
+    exam_type = request.args.get("examType")
+
+    if not all([year, subject, exam_type]):
+        flash("Missing required parameters", "error")
+        return redirect(url_for("view_marks"))
+
+    with db_results.get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Get marks with question details
+        cursor.execute(
+            """
+            SELECT sr.roll_number, sr.subject, sr.total_marks,
+                   qm.question_number, qm.part_a, qm.part_b, qm.part_c, qm.part_d
+            FROM students_results sr
+            LEFT JOIN question_marks qm ON sr.id = qm.result_id
+            WHERE sr.class_year = ? AND sr.subject = ? AND sr.exam_type = ?
+            ORDER BY sr.roll_number, qm.question_number
+        """,
+            (year, subject, exam_type),
+        )
+
+        results = {}
+        for row in cursor.fetchall():
+            roll_number = row[0]
+            if roll_number not in results:
+                results[roll_number] = {
+                    "Roll Number": roll_number,
+                    "Subject": row[1],
+                    "Total Marks": row[2],
+                }
+                # Initialize all question parts with 0
+                for q_num in range(1, 7):
+                    results[roll_number][f"Q{q_num}a"] = 0
+                    results[roll_number][f"Q{q_num}b"] = 0
+                    results[roll_number][f"Q{q_num}c"] = 0
+                    results[roll_number][f"Q{q_num}d"] = 0
+
+            if row[3]:  # if there are question details
+                q_num = row[3]
+                results[roll_number][f"Q{q_num}a"] = row[4]
+                results[roll_number][f"Q{q_num}b"] = row[5]
+                results[roll_number][f"Q{q_num}c"] = row[6]
+                results[roll_number][f"Q{q_num}d"] = row[7]
+
+        if not results:
+            flash("No data available to download", "error")
+            return redirect(url_for("view_marks"))
+
+        # Create DataFrame and Excel file
+        df = pd.DataFrame(list(results.values()))
+
+        # Create a temporary file
+        temp_dir = tempfile.mkdtemp()
+        excel_path = os.path.join(temp_dir, f"marks_{year}_{subject}_{exam_type}.xlsx")
+
+        # Save to Excel with formatting
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Marks")
+
+            # Get the workbook and the worksheet
+            workbook = writer.book
+            worksheet = writer.sheets["Marks"]
+
+            # Format headers
+            for col in range(worksheet.max_column):
+                cell = worksheet.cell(row=1, column=col + 1)
+                cell.font = openpyxl.styles.Font(bold=True)
+                cell.fill = openpyxl.styles.PatternFill(
+                    start_color="8B5CF6", end_color="8B5CF6", fill_type="solid"
+                )
+                cell.font = openpyxl.styles.Font(color="FFFFFF", bold=True)
+
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column = [cell for cell in column]
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = max_length + 2
+                worksheet.column_dimensions[
+                    openpyxl.utils.get_column_letter(column[0].column)
+                ].width = adjusted_width
+
+        # Send file and clean up
+        try:
+            return send_file(
+                excel_path,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                as_attachment=True,
+                download_name=f"marks_{year}_{subject}_{exam_type}.xlsx",
+            )
+        finally:
+            # Clean up temp file in a separate thread to avoid blocking
+            def cleanup():
+                time.sleep(1)  # Wait a bit to ensure file is sent
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
+            threading.Thread(target=cleanup).start()
 
 
 if __name__ == "__main__":
